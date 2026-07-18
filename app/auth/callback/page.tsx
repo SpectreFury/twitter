@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
 const GoogleCallback = () => {
@@ -32,4 +32,16 @@ const GoogleCallback = () => {
   return <div></div>;
 };
 
-export default GoogleCallback;
+export default function AuthCallback() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <p>Loading security context</p>
+        </div>
+      }
+    >
+      <GoogleCallback />
+    </Suspense>
+  );
+}
