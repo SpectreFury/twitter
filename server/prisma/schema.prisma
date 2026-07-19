@@ -11,3 +11,14 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id Int @id @default(autoincrement())
+  sub String @unique
+  email String @unique
+  first_name String 
+  last_name String
+  image_url String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

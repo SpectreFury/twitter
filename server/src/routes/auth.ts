@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { sign } from 'jsonwebtoken'
+import jwt from "jsonwebtoken";
+import { prisma } from "../lib/prisma.js";
 
 const authRouter = Router();
 
@@ -48,7 +49,50 @@ authRouter.post("/google", async (req, res) => {
 
     console.log("User data: ", infoData);
 
-    return res.status(200);
+    // Add the user to DB if not already present
+
+    let user = await prisma.user.findUnique({
+      where: { sub: infoData.sub },
+    });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          first_name: infoData.given_name,
+          last_name: infoData.family_name,
+          sub: infoData.sub,
+          email: infoData.email,
+          image_url: infoData.picture,
+        },
+      });
+    } else {
+      user = await prisma.user.update({
+        where: { sub: infoData.sub },
+        data: {
+          first_name: infoData.given_name,
+          last_name: infoData.family_name,
+          email: infoData.email,
+          image_url: infoData.picture,
+        },
+      });
+    }
+
+    const payload = {
+      sub: infoData.sub,
+      first_name: infoData.given_name,
+      last_name: infoData.family_name,
+      email: infoData.email,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET!, {
+      expiresIn: "7d",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged in",
+      data: { token, ...payload },
+    });
   } catch (error) {
     console.log("Login error: ", error);
     return res
