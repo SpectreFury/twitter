@@ -1,8 +1,36 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
+import { authenticateToken } from "../middleware/auth.js";
 
 const authRouter = Router();
+
+authRouter.get("/profile", authenticateToken, async (req: any, res) => {
+  try {
+    const sub = req.user.sub;
+
+    const user = await prisma.user.findUnique({
+      where: {
+        sub: sub,
+      },
+    });
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No user was found" });
+    }
+
+    return res
+      .status(200)
+      .json({ success: true, message: "User found", data: user });
+  } catch (error) {
+    console.log("GET user: ", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Login error", error });
+  }
+});
 
 authRouter.post("/google", async (req, res) => {
   try {
