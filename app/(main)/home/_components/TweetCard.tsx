@@ -10,22 +10,27 @@ import {
   Share,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { dayjs } from "@/lib/dayjs";
 
 type TweetCardProps = {
-  name: string;
+  firstName: string;
+  lastName: string;
   handle: string;
-  uploadTime: string;
+  content: string;
+  createdAt: string;
   imageUrl?: string;
 };
 
 const TweetCard = ({
-  name,
+  firstName,
+  lastName,
+  content,
   handle,
-  uploadTime,
+  createdAt,
   imageUrl = "https://github.com/shadcn.png",
 }: TweetCardProps) => {
   return (
-    <div className="flex justify-between border border-gray-100 border-t-0 px-2 py-6 gap-2">
+    <div className="flex justify-between border border-gray-100 border-t-0 p-2 gap-2">
       <div>
         <Image
           src={imageUrl}
@@ -35,21 +40,27 @@ const TweetCard = ({
           className="rounded-full"
         />
       </div>
-      <div className="flex flex-col w-2xl gap-1">
+      <div className="flex flex-col w-2xl">
         <div className="flex justify-between items-center">
           <div className="flex gap-1 items-center">
-            <div className="font-semibold">{name}</div>
-            <div className="text-muted-foreground text-sm">{handle}</div>
+            <div className="font-semibold">
+              {firstName} {lastName}
+            </div>
+            <div className="text-muted-foreground text-sm">
+              {handle ? handle : "Not set"}
+            </div>
             <Dot className="text-muted-foreground" size={20} />
-            <div className="text-muted-foreground text-sm">{uploadTime}</div>
+            <div className="text-muted-foreground text-sm">
+              {dayjs(createdAt).fromNow()}
+            </div>
           </div>
 
           <Button variant="ghost" className="rounded-full">
             <Ellipsis />
           </Button>
         </div>
-        <div>Awesome sauce</div>
-        <div className="flex justify-between">
+        <div>{content}</div>
+        <div className="flex justify-between mt-1">
           <Button
             variant="ghost"
             className="rounded-full hover:bg-blue-50 hover:text-blue-500"

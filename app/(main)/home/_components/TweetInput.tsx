@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Image as ImageIcon } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/components/providers/QueryClientProvider";
 
 const TweetInput = () => {
   const [content, setContent] = useState("");
@@ -43,13 +44,17 @@ const TweetInput = () => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: sendTweet,
-    onSuccess: (data) => {
-      console.log("Data: ", data);
-
+    onSuccess: (result) => {
       setContent("");
       if (contentRef.current) {
         contentRef.current.value = "";
       }
+
+      queryClient.setQueryData(["tweets"], (oldTweets: any) => {
+        if (!oldTweets) return result.data;
+
+        return [result.data, ...oldTweets];
+      });
     },
     onError: (error) => {
       console.log("Error: ", error);

@@ -5,6 +5,43 @@ import { sendError, sendSuccess } from "../lib/apiResponse.js";
 
 const tweetRouter = Router();
 
+tweetRouter.get("/", authenticateToken, async (req: any, res) => {
+  try {
+    const sub = req.user.sub;
+
+    const user = await prisma.user.findUnique({
+      where: {
+        sub,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!user) {
+      return sendError(res, "User not found", "USER_NOT_FOUND", 400);
+    }
+
+    const tweets = await prisma.tweet.findMany({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        user: {
+          select: {
+            image_url: true,
+            first_name: true,
+            last_name: true,
+            id: true,
+          },
+        },
+      },
+    });
+
+    sendSuccess(res, tweets, "Tweets fetched", 200);
+  } catch (error) {}
+});
+
 tweetRouter.post("/", authenticateToken, async (req: any, res) => {
   try {
     const sub = req.user.sub;
@@ -29,13 +66,19 @@ tweetRouter.post("/", authenticateToken, async (req: any, res) => {
         content,
         userId: user.id,
       },
+      include: {
+        user: {
+          select: {
+            image_url: true,
+            first_name: true,
+            last_name: true,
+            id: true,
+          },
+        },
+      },
     });
 
-    const responseBody = {
-      id: tweet.id,
-    };
-
-    return sendSuccess(res, responseBody, "Tweet created", 200);
+    return sendSuccess(res, tweet, "Tweet created", 200);
   } catch (error) {
     console.log("Tweet error: ", error);
     return sendError(res, "Unable to create tweet", "TWEET_ERROR", 500);
