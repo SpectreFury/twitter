@@ -1,5 +1,6 @@
 import type { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { sendError } from "../lib/apiResponse.js";
 
 export const authenticateToken = (
   req: any,
@@ -11,9 +12,12 @@ export const authenticateToken = (
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
-    return res
-      .status(401)
-      .json({ success: false, message: "Access token is missing or invalid" });
+    return sendError(
+      res,
+      "Access token is missing or invalid",
+      "ACCESS_TOKEN_ERROR",
+      401,
+    );
   }
 
   jwt.verify(
@@ -21,11 +25,12 @@ export const authenticateToken = (
     process.env.JWT_SECRET!,
     (error: any, decodedPayload: any) => {
       if (error) {
-        return res.status(403).json({
-          success: false,
-          message: "Token is invalid or expired",
-          error,
-        });
+        return sendError(
+          res,
+          "Token is invalid or expired",
+          "ACCESS_TOKEN_ERROR",
+          403,
+        );
       }
 
       req.user = decodedPayload;

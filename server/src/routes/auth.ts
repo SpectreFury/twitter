@@ -2,6 +2,7 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
 import { authenticateToken } from "../middleware/auth.js";
+import { sendError, sendSuccess } from "../lib/apiResponse.js";
 
 const authRouter = Router();
 
@@ -13,22 +14,24 @@ authRouter.get("/profile", authenticateToken, async (req: any, res) => {
       where: {
         sub: sub,
       },
+      select: {
+        first_name: true,
+        last_name: true,
+        id: true,
+        email: true,
+        handle: true,
+        image_url: true,
+      },
     });
 
     if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "No user was found" });
+      sendError(res, "No user was found", "USER_NOT_FOUND", 400);
     }
 
-    return res
-      .status(200)
-      .json({ success: true, message: "User found", data: user });
+    sendSuccess(res, user, "User found", 200);
   } catch (error) {
     console.log("GET user: ", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Login error", error });
+    sendError(res, "Login error", "LOGIN_ERROR", 500);
   }
 });
 
@@ -116,13 +119,10 @@ authRouter.post("/google", async (req, res) => {
       expiresIn: "7d",
     });
 
-    return res.status(200).json({
-      success: true,
-      message: "Logged in",
-      data: { token, ...payload },
-    });
+    sendSuccess(res, { token, ...payload }, "Logged in", 200);
   } catch (error) {
     console.log("Login error: ", error);
+    sendError(res, "Login error", "LOGIN_ERROR", 500);
     return res
       .status(500)
       .json({ success: false, message: "Login error", error });
