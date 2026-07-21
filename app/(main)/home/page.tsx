@@ -46,6 +46,7 @@ const HomePage = () => {
       {tweets.map((tweet: any) => (
         <TweetCard
           key={tweet.id}
+          id={tweet.id}
           content={tweet.content}
           createdAt={tweet.createdAt}
 

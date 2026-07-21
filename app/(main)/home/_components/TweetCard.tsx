@@ -11,8 +11,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { dayjs } from "@/lib/dayjs";
+import Link from "next/link";
 
 type TweetCardProps = {
+  id: number;
   firstName: string;
   lastName: string;
   handle: string;
@@ -22,6 +24,7 @@ type TweetCardProps = {
 };
 
 const TweetCard = ({
+  id,
   firstName,
   lastName,
   content,
@@ -30,7 +33,10 @@ const TweetCard = ({
   imageUrl = "https://github.com/shadcn.png",
 }: TweetCardProps) => {
   return (
-    <div className="flex justify-between border border-gray-100 border-t-0 p-2 gap-2">
+    <Link
+      href={`/${handle}/${id}`}
+      className="flex justify-between border border-gray-100 border-t-0 p-2 gap-2 hover:bg-gray-50 cursor-pointer"
+    >
       <div>
         <Image
           src={imageUrl}
@@ -101,7 +107,7 @@ const TweetCard = ({
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
