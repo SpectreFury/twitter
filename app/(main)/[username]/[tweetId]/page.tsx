@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -16,12 +17,45 @@ import {
 import Image from "next/image";
 import { Textarea } from "@/components/ui/textarea";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { dayjs } from "@/lib/dayjs";
+import TweetCard from "../../home/_components/TweetCard";
+import ReplyCard from "../../home/_components/ReplyCard";
 
 const TweetDetail = () => {
   const params = useParams();
   const { username, tweetId } = params;
+
+  const [reply, setReply] = useState("");
+
+  const createTweet = async () => {
+    if (!reply) throw new Error("Reply content is required");
+
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("No token");
+
+    const body = {
+      content: reply,
+      parentTweetId: tweetId,
+    };
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL!}/api/tweet`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      },
+    );
+
+    if (!response.ok) throw new Error("Unable to create reply");
+
+    const result = await response.json();
+    return result;
+  };
 
   const fetchTweet = async () => {
     const token = localStorage.getItem("token");
@@ -54,6 +88,16 @@ const TweetDetail = () => {
   } = useQuery({
     queryKey: ["tweet", tweetId],
     queryFn: fetchTweet,
+  });
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: createTweet,
+    onSuccess: (result) => {
+      console.log("Result: ", result);
+    },
+    onError: (error) => {
+      console.log("Error: ", error);
+    },
   });
 
   if (isLoading) {
@@ -162,14 +206,13 @@ const TweetDetail = () => {
             className="rounded-full"
           />
         </div>
-        <div className="flex flex-col w-2xl gap-2">
+        <div className="flex flex-col w-2xl">
           <Textarea
-            // ref={contentRef}
             placeholder="Post your reply"
             className="border-none outline-none shadow-none resize-none text-xl! text-gray-700 focus-visible:ring-0"
-            // onChange={(e) => setContent(e.target.value)}
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
           />
-          <Separator className="bg-gray-100" />
           <div className="flex justify-between items-center">
             <Button
               variant="ghost"
@@ -179,15 +222,28 @@ const TweetDetail = () => {
             </Button>
 
             <Button
-              // disabled={isPending || !content}
+              disabled={isPending || !reply}
               className="rounded-full py-2 px-6"
-              // onClick={() => mutate()}
+              onClick={() => mutate()}
             >
               Reply
             </Button>
           </div>
         </div>
       </div>
+
+      {result.data.replies.map((reply: any) => (
+        <ReplyCard
+          key={reply.id}
+          id={reply.id}
+          content={reply.content}
+          createdAt={reply.createdAt}
+          firstName={reply.user.first_name}
+          lastName={reply.user.last_name}
+          handle={reply.user.handle}
+          imageUrl={reply.user.image_url}
+        />
+      ))}
     </div>
   );
 };

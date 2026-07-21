@@ -63,6 +63,19 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
       },
 
       include: {
+        replies: {
+          include: {
+            user: {
+              select: {
+                image_url: true,
+                first_name: true,
+                last_name: true,
+                id: true,
+                handle: true,
+              },
+            },
+          },
+        },
         user: {
           select: {
             image_url: true,
@@ -89,7 +102,7 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
 tweetRouter.post("/", authenticateToken, async (req: any, res) => {
   try {
     const sub = req.user.sub;
-    const { content } = req.body;
+    const { content, parentTweetId } = req.body;
 
     if (!content) {
       return sendError(res, "Content is required for tweet", "NO_CONTENT", 400);
@@ -98,6 +111,9 @@ tweetRouter.post("/", authenticateToken, async (req: any, res) => {
     const user = await prisma.user.findUnique({
       where: {
         sub,
+      },
+      select: {
+        id: true,
       },
     });
 
@@ -109,6 +125,7 @@ tweetRouter.post("/", authenticateToken, async (req: any, res) => {
       data: {
         content,
         userId: user.id,
+        parentTweetId: Number(parentTweetId) || null,
       },
       include: {
         user: {
@@ -123,7 +140,7 @@ tweetRouter.post("/", authenticateToken, async (req: any, res) => {
       },
     });
 
-    return sendSuccess(res, tweet, "Tweet created", 200);
+    return sendSuccess(res, tweet, "Tweet created", 201);
   } catch (error) {
     console.log("Tweet error: ", error);
     return sendError(res, "Unable to create tweet", "TWEET_ERROR", 500);
