@@ -33,6 +33,7 @@ tweetRouter.get("/", authenticateToken, async (req: any, res) => {
             first_name: true,
             last_name: true,
             id: true,
+            handle: true
           },
         },
       },
@@ -73,6 +74,7 @@ tweetRouter.post("/", authenticateToken, async (req: any, res) => {
             first_name: true,
             last_name: true,
             id: true,
+            handle: true
           },
         },
       },

@@ -122,10 +122,51 @@ authRouter.post("/google", async (req, res) => {
     sendSuccess(res, { token, ...payload }, "Logged in", 200);
   } catch (error) {
     console.log("Login error: ", error);
-    sendError(res, "Login error", "LOGIN_ERROR", 500);
-    return res
-      .status(500)
-      .json({ success: false, message: "Login error", error });
+    return sendError(res, "Login error", "LOGIN_ERROR", 500);
+  }
+});
+
+authRouter.post("/onboard", authenticateToken, async (req: any, res) => {
+  try {
+    const sub = req.user.sub;
+
+    const { username } = req.body;
+    if (!username) {
+      return sendError(
+        res,
+        "Username is required to continue",
+        "NO_USERNAME",
+        400,
+      );
+    }
+
+    const found = await prisma.user.findUnique({
+      where: {
+        handle: username,
+      },
+    });
+
+    if (found) {
+      return sendError(res, "Already exists", "ALREADY_EXISTS", 409);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: {
+        sub,
+      },
+      data: {
+        handle: username,
+      },
+    });
+
+    const responseBody = {
+      id: updatedUser.id,
+    };
+
+    return sendSuccess(res, responseBody, "Username updated", 200);
+  } catch (error) {
+    console.log("Onboard error: ", error);
+    sendError(res, "Onboard error", "ONBOARDING_ERROR", 500);
   }
 });
 

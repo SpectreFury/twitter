@@ -33,7 +33,7 @@ const GoogleCallback = () => {
       console.log("Google result: ", result);
       localStorage.setItem("token", result.data.token)
 
-      router.replace("/dashboard")
+      router.replace("/onboarding")
     };
 
     loginToGoogle();

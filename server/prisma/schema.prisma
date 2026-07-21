@@ -29,12 +29,16 @@ model User {
 }
 
 model Tweet {
-  id      Int    @id @default(autoincrement())
-  content String
-  userId  Int
-  user    User   @relation("UserTweets", fields: [userId], references: [id], onDelete: Cascade)
-  likes   Like[]
+  id       Int     @id @default(autoincrement())
+  content  String
+  userId   Int
+  user     User    @relation("UserTweets", fields: [userId], references: [id], onDelete: Cascade)
+  likes    Like[]
   imageUrl String?
+  replies  Tweet[] @relation("TweetReplies")
+
+  parentTweetId Int?
+  parentTweet   Tweet? @relation("TweetReplies", fields: [parentTweetId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

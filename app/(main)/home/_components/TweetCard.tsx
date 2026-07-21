@@ -47,7 +47,7 @@ const TweetCard = ({
               {firstName} {lastName}
             </div>
             <div className="text-muted-foreground text-sm">
-              {handle ? handle : "Not set"}
+              {handle ? `@${handle}` : "Not set"}
             </div>
             <Dot className="text-muted-foreground" size={20} />
             <div className="text-muted-foreground text-sm">
