@@ -21,6 +21,11 @@ type ReplyCardProps = {
   content: string;
   createdAt: string;
   imageUrl?: string;
+  onLike: (tweetId: number) => void;
+  onUnlike: (tweetId: number) => void;
+  isLiked: boolean;
+  likeCount: number;
+  replyCount: number;
 };
 
 const ReplyCard = ({
@@ -31,6 +36,11 @@ const ReplyCard = ({
   handle,
   createdAt,
   imageUrl = "https://github.com/shadcn.png",
+  onLike,
+  onUnlike,
+  isLiked,
+  likeCount,
+  replyCount,
 }: ReplyCardProps) => {
   return (
     <Link
@@ -72,6 +82,7 @@ const ReplyCard = ({
             className="rounded-full hover:bg-blue-50 hover:text-blue-500"
           >
             <MessageCircle />
+            {replyCount}
           </Button>
           <Button
             variant="ghost"
@@ -82,8 +93,19 @@ const ReplyCard = ({
           <Button
             variant="ghost"
             className="rounded-full hover:bg-pink-50 hover:text-pink-500"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+
+              if (isLiked) {
+                onUnlike(id);
+              } else {
+                onLike(id);
+              }
+            }}
           >
-            <Heart />
+            <Heart className={isLiked ? "fill-pink-500 text-white" : ""} />
+            {likeCount}
           </Button>
           <Button
             variant="ghost"

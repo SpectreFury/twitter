@@ -19,8 +19,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { dayjs } from "@/lib/dayjs";
-import TweetCard from "../../home/_components/TweetCard";
 import ReplyCard from "../../home/_components/ReplyCard";
+import { queryClient } from "@/components/providers/QueryClientProvider";
 
 const TweetDetail = () => {
   const params = useParams();
@@ -36,7 +36,7 @@ const TweetDetail = () => {
 
     const body = {
       content: reply,
-      parentTweetId: tweetId,
+      parentTweetId: Number(tweetId),
     };
 
     const response = await fetch(
@@ -93,10 +93,157 @@ const TweetDetail = () => {
   const { mutate, isPending } = useMutation({
     mutationFn: createTweet,
     onSuccess: (result) => {
-      console.log("Result: ", result);
+      setReply("");
+
+      queryClient.setQueryData(["tweet", tweetId], (oldData: any) => {
+        if (!oldData || !oldData.data) return oldData;
+
+        const newReply = result.data;
+
+        return {
+          ...oldData,
+          data: {
+            ...oldData.data,
+            replies: [
+              {
+                ...newReply,
+                isLiked: false,
+                likeCount: 0,
+              },
+              ...oldData.data.replies,
+            ],
+          },
+        };
+      });
     },
     onError: (error) => {
-      console.log("Error: ", error);
+      console.error("Error creating reply: ", error);
+    },
+  });
+
+  const handleLike = async (idToLike: number) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) throw new Error("No token found");
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL!}/api/tweet/${idToLike}/likes`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!response.ok && response.status === 409)
+      throw new Error("Duplicate like attempt");
+
+    if (!response.ok) throw new Error("Unable to create like");
+
+    const result = await response.json();
+    return result;
+  };
+
+  const handleUnlike = async (idToUnlike: number) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) throw new Error("No token found");
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL!}/api/tweet/${idToUnlike}/likes`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!response.ok) throw new Error("Unable to unlike");
+
+    const result = await response.json();
+    return result;
+  };
+
+  const updateTweetLikeState = (
+    tweet: any,
+    targetId: number,
+    isLiking: boolean,
+  ): any => {
+    if (tweet.id === targetId) {
+      return {
+        ...tweet,
+        isLiked: isLiking,
+        likeCount: isLiking
+          ? (tweet.likeCount || 0) + 1
+          : Math.max(0, (tweet.likeCount || 1) - 1),
+      };
+    }
+
+    if (tweet.replies && Array.isArray(tweet.replies)) {
+      return {
+        ...tweet,
+        replies: tweet.replies.map((replyItem: any) =>
+          updateTweetLikeState(replyItem, targetId, isLiking),
+        ),
+      };
+    }
+
+    return tweet;
+  };
+
+  const { mutate: likeMutation } = useMutation({
+    mutationFn: handleLike,
+    onMutate: async (targetTweetId: number) => {
+      await queryClient.cancelQueries({ queryKey: ["tweet", tweetId] });
+
+      const previousData = queryClient.getQueryData(["tweet", tweetId]);
+
+      queryClient.setQueryData(["tweet", tweetId], (old: any) => {
+        if (!old || !old.data) return old;
+
+        return {
+          ...old,
+          data: updateTweetLikeState(old.data, targetTweetId, true),
+        };
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, _targetTweetId, context) => {
+      console.log("Like error: ", err);
+      if (context?.previousData) {
+        queryClient.setQueryData(["tweet", tweetId], context.previousData);
+      }
+    },
+  });
+
+  const { mutate: unlikeMutation } = useMutation({
+    mutationFn: handleUnlike,
+    onMutate: async (targetTweetId: number) => {
+      await queryClient.cancelQueries({ queryKey: ["tweet", tweetId] });
+
+      const previousData = queryClient.getQueryData(["tweet", tweetId]);
+
+      queryClient.setQueryData(["tweet", tweetId], (old: any) => {
+        if (!old || !old.data) return old;
+
+        return {
+          ...old,
+          data: updateTweetLikeState(old.data, targetTweetId, false),
+        };
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, _targetTweetId, context) => {
+      console.log("Unlike error: ", err);
+      if (context?.previousData) {
+        queryClient.setQueryData(["tweet", tweetId], context.previousData);
+      }
     },
   });
 
@@ -114,6 +261,10 @@ const TweetDetail = () => {
     );
   }
 
+  const tweet = result.data;
+
+  console.log("Tweet: ", tweet)
+
   return (
     <div className="flex flex-col gap-4 border border-gray-100 border-y-0 px-4 ">
       <div className="flex items-center w-2xl">
@@ -128,7 +279,7 @@ const TweetDetail = () => {
         <div className="flex gap-2">
           <div>
             <Image
-              src={result.data.user.image_url}
+              src={tweet.user.image_url}
               alt="Profile photo"
               width={40}
               height={40}
@@ -137,10 +288,10 @@ const TweetDetail = () => {
           </div>
           <div>
             <div className="font-medium">
-              {result.data.user.first_name} {result.data.user.last_name}
+              {tweet.user.first_name} {tweet.user.last_name}
             </div>
             <div className="text-muted-foreground text-sm">
-              {result.data.user.handle}
+              {tweet.user.handle}
             </div>
           </div>
         </div>
@@ -153,12 +304,12 @@ const TweetDetail = () => {
         </Button>
       </div>
 
-      <div className="text-lg">{result.data.content}</div>
+      <div className="text-lg">{tweet.content}</div>
 
       <div className="flex items-center text-gray-500">
-        <div>{dayjs(result.data.createdAt).format("h:mm A")}</div>
+        <div>{dayjs(tweet.createdAt).format("h:mm A")}</div>
         <Dot />
-        <div>{dayjs(result.data.createdAt).format("MMM D, YYYY")}</div>
+        <div>{dayjs(tweet.createdAt).format("MMM D, YYYY")}</div>
       </div>
 
       <Separator />
@@ -169,6 +320,7 @@ const TweetDetail = () => {
           className="rounded-full hover:bg-blue-50 hover:text-blue-500"
         >
           <MessageCircle />
+          {tweet.replyCount}
         </Button>
         <Button
           variant="ghost"
@@ -178,9 +330,15 @@ const TweetDetail = () => {
         </Button>
         <Button
           variant="ghost"
-          className="rounded-full hover:bg-pink-50 hover:text-pink-500"
+          onClick={() =>
+            tweet.isLiked ? unlikeMutation(tweet.id) : likeMutation(tweet.id)
+          }
+          className={`rounded-full hover:bg-pink-50 hover:text-pink-500 ${
+            tweet.isLiked ? "text-pink-500" : ""
+          }`}
         >
-          <Heart />
+          <Heart className={tweet.isLiked ? "fill-pink-500" : ""} />
+          {tweet.likeCount}
         </Button>
         <Button
           variant="ghost"
@@ -232,16 +390,21 @@ const TweetDetail = () => {
         </div>
       </div>
 
-      {result.data.replies.map((reply: any) => (
+      {tweet.replies.map((replyItem: any) => (
         <ReplyCard
-          key={reply.id}
-          id={reply.id}
-          content={reply.content}
-          createdAt={reply.createdAt}
-          firstName={reply.user.first_name}
-          lastName={reply.user.last_name}
-          handle={reply.user.handle}
-          imageUrl={reply.user.image_url}
+          key={replyItem.id}
+          id={replyItem.id}
+          content={replyItem.content}
+          createdAt={replyItem.createdAt}
+          firstName={replyItem.user.first_name}
+          lastName={replyItem.user.last_name}
+          handle={replyItem.user.handle}
+          imageUrl={replyItem.user.image_url}
+          onLike={likeMutation}
+          onUnlike={unlikeMutation}
+          isLiked={replyItem.isLiked}
+          likeCount={replyItem.likeCount}
+          replyCount={replyItem.replyCount}
         />
       ))}
     </div>
