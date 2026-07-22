@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { authenticateToken } from "../middleware/auth.js";
 import { sendError, sendSuccess } from "../lib/apiResponse.js";
+import { Prisma } from "../generated/prisma/client.js";
 
 const tweetRouter = Router();
 
@@ -26,6 +27,7 @@ tweetRouter.get("/", authenticateToken, async (req: any, res) => {
       where: {
         userId: user.id,
       },
+
       include: {
         user: {
           select: {
@@ -36,10 +38,29 @@ tweetRouter.get("/", authenticateToken, async (req: any, res) => {
             handle: true,
           },
         },
+
+        likes: {
+          where: {
+            userId: user.id,
+          },
+          select: {
+            id: true,
+          },
+        },
+
+        _count: {
+          select: { likes: true },
+        },
       },
     });
 
-    sendSuccess(res, tweets, "Tweets fetched", 200);
+    const formattedTweets = tweets.map((tweet) => ({
+      ...tweet,
+      isLiked: tweet.likes.length > 0,
+      likeCount: tweet._count.likes,
+    }));
+
+    sendSuccess(res, formattedTweets, "Tweets fetched", 200);
   } catch (error) {}
 });
 
@@ -98,6 +119,51 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
     return sendError(res, "Unable to create tweet", "TWEET_ERROR", 500);
   }
 });
+
+tweetRouter.post(
+  "/:tweetId/likes",
+  authenticateToken,
+  async (req: any, res) => {
+    try {
+      const sub = req.user.sub;
+      const tweetId = Number(req.params.tweetId);
+
+      const user = await prisma.user.findUnique({
+        where: {
+          sub,
+        },
+      });
+
+      if (!user) {
+        return sendError(res, "No user found", "NOT_FOUND", 404);
+      }
+
+      const like = await prisma.like.create({
+        data: {
+          tweetId: tweetId,
+          userId: user.id,
+        },
+      });
+
+      return sendSuccess(res, like, "Like created", 201);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        return sendError(
+          res,
+          "You have already liked this tweet",
+          "ALREADY_LIKED",
+          409,
+        );
+      }
+
+      console.log("Tweet error: ", error);
+      return sendError(res, "Unable to create tweet", "TWEET_ERROR", 500);
+    }
+  },
+);
 
 tweetRouter.post("/", authenticateToken, async (req: any, res) => {
   try {

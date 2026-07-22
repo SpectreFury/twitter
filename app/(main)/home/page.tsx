@@ -2,7 +2,7 @@
 
 import TweetCard from "./_components/TweetCard";
 import TweetInput from "./_components/TweetInput";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 const HomePage = () => {
   const fetchTweets = async () => {
@@ -23,6 +23,40 @@ const HomePage = () => {
     const result = await response.json();
     return result.data;
   };
+
+  const handleLike = async (tweetId: number) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) throw new Error("No token found");
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL!}/api/tweet/${tweetId}/likes`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!response.ok && response.status === 409)
+      throw new Error("Duplicate like attempt");
+
+    if (!response.ok) throw new Error("Unable to create like");
+
+    const result = await response.json();
+    return result;
+  };
+
+  const { mutate: likeMutation, isPending } = useMutation({
+    mutationFn: handleLike,
+    onSuccess: (result) => {
+      console.log("Result: ", result);
+    },
+    onError: (error) => {
+      console.log("Error: ", error);
+    },
+  });
 
   const {
     data: tweets,
@@ -54,6 +88,9 @@ const HomePage = () => {
           lastName={tweet.user.last_name}
           imageUrl={tweet.user.image_url}
           handle={tweet.user.handle}
+          onLike={likeMutation}
+          isLiked={tweet.isLiked}
+          likeCount={tweet.likeCount}
         />
       ))}
     </div>
