@@ -146,8 +146,6 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
 
     const { likes, _count, replies, ...restTweet } = tweet;
 
-    console.log("_count: ", _count);
-
     const formattedTweet = {
       ...restTweet,
       isLiked: likes.length > 0,
