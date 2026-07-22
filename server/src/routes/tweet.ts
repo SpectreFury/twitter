@@ -75,6 +75,15 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
       return sendError(res, "tweetId should be a Int", "MALFORMED_ID", 400);
     }
 
+    const user = await prisma.user.findUnique({
+      where: { sub },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return sendError(res, "User not found", "USER_NOT_FOUND", 400);
+    }
+
     const tweet = await prisma.tweet.findUnique({
       where: {
         id: idNumber,
@@ -86,6 +95,13 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
       include: {
         replies: {
           include: {
+            likes: {
+              where: { userId: user.id },
+              select: {
+                id: true,
+              },
+            },
+
             user: {
               select: {
                 image_url: true,
@@ -95,8 +111,13 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
                 handle: true,
               },
             },
+
+            _count: {
+              select: { likes: true}
+            }
           },
         },
+
         user: {
           select: {
             image_url: true,
@@ -106,6 +127,15 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
             handle: true,
           },
         },
+
+        likes: {
+          where: { userId: user.id },
+          select: { id: true },
+        },
+
+        _count: {
+          select: { likes: true, },
+        },
       },
     });
 
@@ -113,7 +143,20 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
       return sendError(res, "Tweet not found", "NOT_FOUND", 400);
     }
 
-    return sendSuccess(res, tweet, "Tweet fetched", 200);
+    const { likes, _count, replies, ...restTweet } = tweet;
+
+    const formattedTweet = {
+      ...restTweet,
+      isLiked: likes.length > 0,
+      likeCount: _count.likes,
+      replies: replies.map(({ likes: replyLikes, _count: replyCount, ...reply }) => ({
+        ...reply,
+        isLiked: replyLikes.length > 0,
+        likeCount: replyCount.likes,
+      })),
+    };
+
+    return sendSuccess(res, formattedTweet, "Tweet fetched", 200);
   } catch (error) {
     console.log("Tweet error: ", error);
     return sendError(res, "Unable to create tweet", "TWEET_ERROR", 500);

@@ -19,7 +19,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { dayjs } from "@/lib/dayjs";
-import TweetCard from "../../home/_components/TweetCard";
 import ReplyCard from "../../home/_components/ReplyCard";
 
 const TweetDetail = () => {
@@ -89,6 +88,8 @@ const TweetDetail = () => {
     queryKey: ["tweet", tweetId],
     queryFn: fetchTweet,
   });
+
+  console.log("Result: ", result)
 
   const { mutate, isPending } = useMutation({
     mutationFn: createTweet,
