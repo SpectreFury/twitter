@@ -1,10 +1,15 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
   const GOOGLE_URL = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_URL!;
   const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
   const REDIRECT_URI = process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI!;
+
+  const router = useRouter();
 
   const redirectToGoogle = () => {
     const options = {
@@ -21,8 +26,16 @@ export default function Home() {
     window.location.href = `${GOOGLE_URL}?${params}`;
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      router.replace("/home");
+    }
+  }, []);
+
   return (
-    <div className="container mx-auto">
+    <div className="w-full h-screen flex justify-center items-center container mx-auto">
       <div className="w-1/5">
         <Button
           variant="outline"

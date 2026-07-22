@@ -1,8 +1,39 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
+import { authenticateToken } from "../middleware/auth.js";
+import { sendError, sendSuccess } from "../lib/apiResponse.js";
 
 const authRouter = Router();
+
+authRouter.get("/profile", authenticateToken, async (req: any, res) => {
+  try {
+    const sub = req.user.sub;
+
+    const user = await prisma.user.findUnique({
+      where: {
+        sub: sub,
+      },
+      select: {
+        first_name: true,
+        last_name: true,
+        id: true,
+        email: true,
+        handle: true,
+        image_url: true,
+      },
+    });
+
+    if (!user) {
+      sendError(res, "No user was found", "USER_NOT_FOUND", 400);
+    }
+
+    sendSuccess(res, user, "User found", 200);
+  } catch (error) {
+    console.log("GET user: ", error);
+    sendError(res, "Login error", "LOGIN_ERROR", 500);
+  }
+});
 
 authRouter.post("/google", async (req, res) => {
   try {
@@ -88,16 +119,54 @@ authRouter.post("/google", async (req, res) => {
       expiresIn: "7d",
     });
 
-    return res.status(200).json({
-      success: true,
-      message: "Logged in",
-      data: { token, ...payload },
-    });
+    sendSuccess(res, { token, ...payload }, "Logged in", 200);
   } catch (error) {
     console.log("Login error: ", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Login error", error });
+    return sendError(res, "Login error", "LOGIN_ERROR", 500);
+  }
+});
+
+authRouter.post("/onboard", authenticateToken, async (req: any, res) => {
+  try {
+    const sub = req.user.sub;
+
+    const { username } = req.body;
+    if (!username) {
+      return sendError(
+        res,
+        "Username is required to continue",
+        "NO_USERNAME",
+        400,
+      );
+    }
+
+    const found = await prisma.user.findUnique({
+      where: {
+        handle: username,
+      },
+    });
+
+    if (found) {
+      return sendError(res, "Already exists", "ALREADY_EXISTS", 409);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: {
+        sub,
+      },
+      data: {
+        handle: username,
+      },
+    });
+
+    const responseBody = {
+      id: updatedUser.id,
+    };
+
+    return sendSuccess(res, responseBody, "Username updated", 200);
+  } catch (error) {
+    console.log("Onboard error: ", error);
+    sendError(res, "Onboard error", "ONBOARDING_ERROR", 500);
   }
 });
 

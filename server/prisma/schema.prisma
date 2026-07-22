@@ -13,12 +13,46 @@ datasource db {
 }
 
 model User {
-  id Int @id @default(autoincrement())
-  sub String @unique
-  email String @unique
-  first_name String 
-  last_name String
-  image_url String?
+  id         Int     @id @default(autoincrement())
+  sub        String  @unique
+  email      String  @unique
+  first_name String
+  last_name  String
+  handle     String? @unique
+  image_url  String?
+
+  tweets Tweet[] @relation("UserTweets")
+  likes  Like[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Tweet {
+  id       Int     @id @default(autoincrement())
+  content  String
+  userId   Int
+  user     User    @relation("UserTweets", fields: [userId], references: [id], onDelete: Cascade)
+  likes    Like[]
+  imageUrl String?
+  replies  Tweet[] @relation("TweetReplies")
+
+  parentTweetId Int?
+  parentTweet   Tweet? @relation("TweetReplies", fields: [parentTweetId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  userId  Int
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tweetId Int
+  tweet   Tweet @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tweetId])
+  @@index([tweetId])
 }

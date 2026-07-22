@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import NavigationAsideButton from "./NavigationAsideButton";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import {
   Ellipsis,
 } from "lucide-react";
 import UserProfile from "./UserProfile";
+import { User as UserType } from "@/types/user";
 
 const NAVIGATION_ITEMS = [
   {
@@ -78,6 +80,36 @@ const NAVIGATION_ITEMS = [
 ];
 
 const NavigationAside = () => {
+  const [user, setUser] = useState<UserType | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL!}/api/auth/profile`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const result = await response.json();
+      setUser({
+        firstName: result.data.first_name,
+        lastName: result.data.last_name,
+        imageUrl: result.data.image_url,
+        email: result.data.email,
+        handle: result.data.handle,
+        id: result.data.id,
+      });
+    };
+
+    fetchUser();
+  }, []);
+
   return (
     <aside className="h-screen flex flex-col gap-6">
       <div className="mt-2 px-4">
@@ -97,7 +129,7 @@ const NavigationAside = () => {
 
       <Button className="rounded-full py-6 text-lg font-semibold">Post</Button>
 
-      <UserProfile />
+      <UserProfile user={user} />
     </aside>
   );
 };

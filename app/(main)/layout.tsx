@@ -1,3 +1,4 @@
+import AuthProvider from "@/components/providers/AuthProviders";
 import NavigationAside from "./_components/NavigationAside";
 import SearchAside from "./_components/SearchAside";
 
@@ -7,13 +8,15 @@ type MainLayoutProps = {
 
 const MainLayout = ({ children }: MainLayoutProps) => {
   return (
-    <div className="flex justify-between container mx-auto">
-      <NavigationAside />
+    <AuthProvider>
+      <div className="flex justify-between container mx-auto">
+        <NavigationAside />
 
-      <div>{children}</div>
+        <div>{children}</div>
 
-      <SearchAside />
-    </div>
+        <SearchAside />
+      </div>
+    </AuthProvider>
   );
 };
 
