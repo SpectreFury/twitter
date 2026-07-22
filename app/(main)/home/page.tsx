@@ -158,6 +158,7 @@ const HomePage = () => {
           onUnlike={unlikeMutation}
           isLiked={tweet.isLiked}
           likeCount={tweet.likeCount}
+          replyCount={tweet.replyCount}
         />
       ))}
     </div>

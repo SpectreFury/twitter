@@ -166,7 +166,6 @@ const TweetDetail = () => {
     return result;
   };
 
-  // Helper function to recursively update likes on main tweet or any nested reply
   const updateTweetLikeState = (
     tweet: any,
     targetId: number,
@@ -197,13 +196,10 @@ const TweetDetail = () => {
   const { mutate: likeMutation } = useMutation({
     mutationFn: handleLike,
     onMutate: async (targetTweetId: number) => {
-      // 1. Cancel outgoing queries for this specific tweet detail view
       await queryClient.cancelQueries({ queryKey: ["tweet", tweetId] });
 
-      // 2. Snapshot current state
       const previousData = queryClient.getQueryData(["tweet", tweetId]);
 
-      // 3. Optimistically update state
       queryClient.setQueryData(["tweet", tweetId], (old: any) => {
         if (!old || !old.data) return old;
 
@@ -267,6 +263,8 @@ const TweetDetail = () => {
 
   const tweet = result.data;
 
+  console.log("Tweet: ", tweet)
+
   return (
     <div className="flex flex-col gap-4 border border-gray-100 border-y-0 px-4 ">
       <div className="flex items-center w-2xl">
@@ -322,6 +320,7 @@ const TweetDetail = () => {
           className="rounded-full hover:bg-blue-50 hover:text-blue-500"
         >
           <MessageCircle />
+          {tweet.replyCount}
         </Button>
         <Button
           variant="ghost"
@@ -339,6 +338,7 @@ const TweetDetail = () => {
           }`}
         >
           <Heart className={tweet.isLiked ? "fill-pink-500" : ""} />
+          {tweet.likeCount}
         </Button>
         <Button
           variant="ghost"
@@ -404,6 +404,7 @@ const TweetDetail = () => {
           onUnlike={unlikeMutation}
           isLiked={replyItem.isLiked}
           likeCount={replyItem.likeCount}
+          replyCount={replyItem.replyCount}
         />
       ))}
     </div>

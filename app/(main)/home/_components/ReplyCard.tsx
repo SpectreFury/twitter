@@ -25,6 +25,7 @@ type ReplyCardProps = {
   onUnlike: (tweetId: number) => void;
   isLiked: boolean;
   likeCount: number;
+  replyCount: number;
 };
 
 const ReplyCard = ({
@@ -39,6 +40,7 @@ const ReplyCard = ({
   onUnlike,
   isLiked,
   likeCount,
+  replyCount,
 }: ReplyCardProps) => {
   return (
     <Link
@@ -80,6 +82,7 @@ const ReplyCard = ({
             className="rounded-full hover:bg-blue-50 hover:text-blue-500"
           >
             <MessageCircle />
+            {replyCount}
           </Button>
           <Button
             variant="ghost"
@@ -102,6 +105,7 @@ const ReplyCard = ({
             }}
           >
             <Heart className={isLiked ? "fill-pink-500 text-white" : ""} />
+            {likeCount}
           </Button>
           <Button
             variant="ghost"

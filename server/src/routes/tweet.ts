@@ -49,7 +49,7 @@ tweetRouter.get("/", authenticateToken, async (req: any, res) => {
         },
 
         _count: {
-          select: { likes: true },
+          select: { likes: true, replies: true },
         },
       },
     });
@@ -58,6 +58,7 @@ tweetRouter.get("/", authenticateToken, async (req: any, res) => {
       ...tweet,
       isLiked: tweet.likes.length > 0,
       likeCount: tweet._count.likes,
+      replyCount: tweet._count.replies,
     }));
 
     sendSuccess(res, formattedTweets, "Tweets fetched", 200);
@@ -113,8 +114,8 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
             },
 
             _count: {
-              select: { likes: true}
-            }
+              select: { likes: true, replies: true },
+            },
           },
         },
 
@@ -134,7 +135,7 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
         },
 
         _count: {
-          select: { likes: true, },
+          select: { likes: true, replies: true },
         },
       },
     });
@@ -145,15 +146,21 @@ tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
 
     const { likes, _count, replies, ...restTweet } = tweet;
 
+    console.log("_count: ", _count);
+
     const formattedTweet = {
       ...restTweet,
       isLiked: likes.length > 0,
       likeCount: _count.likes,
-      replies: replies.map(({ likes: replyLikes, _count: replyCount, ...reply }) => ({
-        ...reply,
-        isLiked: replyLikes.length > 0,
-        likeCount: replyCount.likes,
-      })),
+      replyCount: _count.replies,
+      replies: replies.map(
+        ({ likes: replyLikes, _count: replyCount, ...reply }) => ({
+          ...reply,
+          isLiked: replyLikes.length > 0,
+          likeCount: replyCount.likes,
+          replyCount: replyCount.replies,
+        }),
+      ),
     };
 
     return sendSuccess(res, formattedTweet, "Tweet fetched", 200);
