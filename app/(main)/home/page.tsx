@@ -1,5 +1,6 @@
 "use client";
 
+import { queryClient } from "@/components/providers/QueryClientProvider";
 import TweetCard from "./_components/TweetCard";
 import TweetInput from "./_components/TweetInput";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -48,11 +49,76 @@ const HomePage = () => {
     return result;
   };
 
-  const { mutate: likeMutation, isPending } = useMutation({
+  const handleUnlike = async (tweetId: number) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) throw new Error("No token found");
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL!}/api/tweet/${tweetId}/likes`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!response.ok) throw new Error("Unable to unlike");
+
+    const result = await response.json();
+    return result;
+  };
+
+  const { mutate: likeMutation } = useMutation({
     mutationFn: handleLike,
-    onSuccess: (result) => {
-      console.log("Result: ", result);
+    onMutate: async (tweetId) => {
+      await queryClient.cancelQueries({ queryKey: ["tweets"] });
+
+      const previousTweets = queryClient.getQueryData(["tweets"]);
+
+      queryClient.setQueryData(["tweets"], (old: any[] | undefined) => {
+        if (!old) return [];
+
+        return old.map((tweet) =>
+          tweet.id === tweetId
+            ? { ...tweet, isLiked: true, likeCount: (tweet.likeCount || 0) + 1 }
+            : tweet,
+        );
+      });
+
+      return previousTweets;
     },
+
+    onError: (error) => {
+      console.log("Error: ", error);
+    },
+  });
+
+  const { mutate: unlikeMutation } = useMutation({
+    mutationFn: handleUnlike,
+    onMutate: async (tweetId) => {
+      await queryClient.cancelQueries({ queryKey: ["tweets"] });
+
+      const previousTweets = queryClient.getQueryData(["tweets"]);
+
+      queryClient.setQueryData(["tweets"], (old: any[] | undefined) => {
+        if (!old) return [];
+
+        return old.map((tweet) =>
+          tweet.id === tweetId
+            ? {
+                ...tweet,
+                isLiked: false,
+                likeCount: Math.max(0, tweet.likeCount || 1) - 1,
+              }
+            : tweet,
+        );
+      });
+
+      return previousTweets;
+    },
+
     onError: (error) => {
       console.log("Error: ", error);
     },
@@ -89,6 +155,7 @@ const HomePage = () => {
           imageUrl={tweet.user.image_url}
           handle={tweet.user.handle}
           onLike={likeMutation}
+          onUnlike={unlikeMutation}
           isLiked={tweet.isLiked}
           likeCount={tweet.likeCount}
         />

@@ -22,6 +22,7 @@ type TweetCardProps = {
   createdAt: string;
   imageUrl?: string;
   onLike: (tweetId: number) => void;
+  onUnlike: (tweetId: number) => void;
   isLiked: boolean;
   likeCount: number;
 };
@@ -35,6 +36,7 @@ const TweetCard = ({
   createdAt,
   imageUrl = "https://github.com/shadcn.png",
   onLike,
+  onUnlike,
   isLiked,
   likeCount,
 }: TweetCardProps) => {
@@ -92,7 +94,11 @@ const TweetCard = ({
               e.preventDefault();
               e.stopPropagation();
 
-              onLike(id);
+              if (isLiked) {
+                onUnlike(id);
+              } else {
+                onLike(id);
+              }
             }}
           >
             <Heart className={isLiked ? "fill-pink-500 text-white" : ""} />

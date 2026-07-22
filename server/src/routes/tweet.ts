@@ -165,6 +165,43 @@ tweetRouter.post(
   },
 );
 
+tweetRouter.delete(
+  "/:tweetId/likes",
+  authenticateToken,
+  async (req: any, res) => {
+    try {
+      const sub = req.user.sub;
+      const tweetId = Number(req.params.tweetId);
+
+      const user = await prisma.user.findUnique({
+        where: {
+          sub,
+        },
+      });
+
+      if (!user) {
+        return sendError(res, "No user found", "NOT_FOUND", 404);
+      }
+
+      const like = await prisma.like.deleteMany({
+        where: {
+          tweetId: tweetId,
+          userId: user.id,
+        },
+      });
+
+      if (like.count === 0) {
+        return sendError(res, "Like not found", "NOT_FOUND", 404);
+      }
+
+      return sendSuccess(res, null, "Like removed", 200);
+    } catch (error) {
+      console.log("Unlike error: ", error);
+      return sendError(res, "Unable to remove like", "UNLIKE_ERROR", 500);
+    }
+  },
+);
+
 tweetRouter.post("/", authenticateToken, async (req: any, res) => {
   try {
     const sub = req.user.sub;
