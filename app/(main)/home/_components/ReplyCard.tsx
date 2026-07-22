@@ -101,7 +101,7 @@ const ReplyCard = ({
               }
             }}
           >
-            <Heart />
+            <Heart className={isLiked ? "fill-pink-500 text-white" : ""} />
           </Button>
           <Button
             variant="ghost"
