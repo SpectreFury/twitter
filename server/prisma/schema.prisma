@@ -24,8 +24,23 @@ model User {
   tweets Tweet[] @relation("UserTweets")
   likes  Like[]
 
+  followedBy Follows[] @relation("following")
+  following  Follows[] @relation("follower")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Follows {
+  followerId Int
+  follower   User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+
+  followingId Int
+  following   User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([followerId, followingId])
 }
 
 model Tweet {

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import UserProfile from "./UserProfile";
 import { User as UserType } from "@/types/user";
+import NavigationAsideSkeleton from "./NavigationAsideSkeleton";
 
 const NAVIGATION_ITEMS = [
   {
@@ -81,6 +82,7 @@ const NAVIGATION_ITEMS = [
 
 const NavigationAside = () => {
   const [user, setUser] = useState<UserType | null>(null);
+  console.log("User: ", user);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -110,6 +112,8 @@ const NavigationAside = () => {
     fetchUser();
   }, []);
 
+  if (!user) return <NavigationAsideSkeleton/>;
+
   return (
     <aside className="h-screen flex flex-col gap-6">
       <div className="mt-2 px-4">
@@ -122,7 +126,7 @@ const NavigationAside = () => {
             key={item.title}
             title={item.title}
             icon={item.icon}
-            href={item.href}
+            href={item.href === "/profile" ? `/${user.handle}` : item.href}
           />
         ))}
       </ul>

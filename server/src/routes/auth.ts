@@ -25,13 +25,60 @@ authRouter.get("/profile", authenticateToken, async (req: any, res) => {
     });
 
     if (!user) {
-      sendError(res, "No user was found", "USER_NOT_FOUND", 400);
+      return sendError(res, "No user was found", "USER_NOT_FOUND", 400);
     }
 
-    sendSuccess(res, user, "User found", 200);
+    return sendSuccess(res, user, "User found", 200);
   } catch (error) {
     console.log("GET user: ", error);
-    sendError(res, "Login error", "LOGIN_ERROR", 500);
+    return sendError(res, "Login error", "LOGIN_ERROR", 500);
+  }
+});
+
+authRouter.get("/profile/:handle", authenticateToken, async (req: any, res) => {
+  try {
+    const sub = req.user.sub;
+    const handle = req.params.handle;
+
+    if (!handle.trim()) {
+      return sendError(res, "Handle is required", "HANDLE_REQUIRED", 400);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        handle,
+      },
+      select: {
+        sub: true,
+        first_name: true,
+        last_name: true,
+        id: true,
+        email: true,
+        handle: true,
+        image_url: true,
+        createdAt: true,
+        _count: {
+          select: {
+            following: true,
+            followedBy: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return sendError(res, "No user was found", "USER_NOT_FOUND", 400);
+    }
+
+    const modifiedUser = {
+      ...user,
+      isCurrentUser: user.sub === sub,
+    };
+
+    return sendSuccess(res, modifiedUser, "User found", 200);
+  } catch (error) {
+    console.log("GET user: ", error);
+    return sendError(res, "Login error", "LOGIN_ERROR", 500);
   }
 });
 
