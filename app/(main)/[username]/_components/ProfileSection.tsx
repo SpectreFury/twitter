@@ -9,10 +9,10 @@ import {
   ChevronRight,
   AlertCircle,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import ProfileSectionSkeleton from "./ProfileSectionSkeleton";
-import {dayjs} from "@/lib/dayjs";
+import { dayjs } from "@/lib/dayjs";
 
 const ProfileSection = () => {
   const { username } = useParams();
@@ -40,13 +40,52 @@ const ProfileSection = () => {
     return result;
   };
 
-  const { data: profile, isLoading, isError, error } = useQuery({
+  const followProfile = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) throw new Error("Log in");
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL!}/api/auth/profile/${username}/follow`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error);
+    }
+
+    const result = await response.json();
+    return result;
+  };
+
+  const {
+    data: profile,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["user"],
     queryFn: fetchProfile,
   });
 
+  const { mutate, isPending } = useMutation({
+    mutationFn: followProfile,
+    onSuccess: (result) => {
+      console.log("Follow result: ", result);
+    },
+    onError: (error) => {
+      console.log("Follow error: ", error);
+    },
+  });
+
   if (isLoading) {
-    return <ProfileSectionSkeleton/>
+    return <ProfileSectionSkeleton />;
   }
 
   if (isError) {
@@ -65,7 +104,7 @@ const ProfileSection = () => {
     );
   }
 
-  console.log("Profile: ", profile)
+  console.log("Profile: ", profile);
 
   return (
     <div className="w-2xl flex flex-col">
@@ -90,17 +129,25 @@ const ProfileSection = () => {
           />
         </div>
 
-        { profile.data.isCurrentUser ? (
+        {profile.data.isCurrentUser ? (
           <Button variant="outline" className="px-6 rounded-full font-bold">
             Edit profile
           </Button>
         ) : (
-          <Button className="px-6 rounded-full font-bold">Follow</Button>
+          <Button
+            disabled={isPending}
+            className="px-6 rounded-full font-bold"
+            onClick={() => mutate()}
+          >
+            Follow
+          </Button>
         )}
       </div>
 
       <div className="ml-6 mt-6">
-        <div className="text-xl font-bold">{profile.data.first_name} {profile.data.last_name}</div>
+        <div className="text-xl font-bold">
+          {profile.data.first_name} {profile.data.last_name}
+        </div>
         <div className="text-gray-500">@{profile.data.handle}</div>
       </div>
 

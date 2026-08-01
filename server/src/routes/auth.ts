@@ -82,6 +82,64 @@ authRouter.get("/profile/:handle", authenticateToken, async (req: any, res) => {
   }
 });
 
+authRouter.post(
+  "/profile/:handle/follow",
+  authenticateToken,
+  async (req: any, res) => {
+    try {
+      const sub = req.user.sub;
+      const handle = req.params.handle;
+
+      if (!handle.trim()) {
+        return sendError(res, "Handle is required", "HANDLE_REQUIRED", 400);
+      }
+
+      const user = await prisma.user.findUnique({
+        where: {
+          sub,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!user) {
+        return sendError(res, "No user was found", "USER_NOT_FOUND", 400);
+      }
+
+      const userToFollow = await prisma.user.findUnique({
+        where: {
+          handle,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!userToFollow) {
+        return sendError(
+          res,
+          "No user with that handle was found",
+          "USER_NOT_FOUND",
+          400,
+        );
+      }
+
+      const follow = await prisma.follows.create({
+        data: {
+          followerId: user.id,
+          followingId: userToFollow.id,
+        },
+      });
+
+      return sendSuccess(res, follow, "User followed", 200);
+    } catch (error) {
+      console.log("Follow: ", error);
+      return sendError(res, "Follow error", "FOLLOW_ERROR", 500);
+    }
+  },
+);
+
 authRouter.post("/google", async (req, res) => {
   try {
     const client_id = process.env.GOOGLE_CLIENT_ID!;
