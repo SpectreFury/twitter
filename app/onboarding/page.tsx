@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,13 +14,32 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 export function Onboarding() {
   const [username, setUsername] = useState("");
 
   const router = useRouter();
+
+  const fetchCurrentUser = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("No token found");
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL!}/api/auth/profile`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!response.ok) throw new Error("Not okay");
+
+    const result = await response.json();
+    return result;
+  };
 
   const updateUsername = async () => {
     if (!username) throw new Error("Username is required to continue");
@@ -51,6 +70,16 @@ export function Onboarding() {
     return result;
   };
 
+  const {
+    data: result,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["current_user"],
+    queryFn: fetchCurrentUser,
+  });
+
   const { mutate, isPending } = useMutation({
     mutationFn: updateUsername,
     onSuccess: (result) => {
@@ -64,6 +93,20 @@ export function Onboarding() {
       toast.error(error.message);
     },
   });
+
+  useEffect(() => {
+    if (result?.data?.handle) {
+      router.replace("/home");
+    }
+  }, [result, router]);
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-screen flex justify-center items-center">
+        <p>Loading</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-screen flex justify-center items-center">
