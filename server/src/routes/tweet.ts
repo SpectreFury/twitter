@@ -6,6 +6,7 @@ import { Prisma } from "../generated/prisma/client.js";
 
 const tweetRouter = Router();
 
+// Should later return all the tweet feed for the home page, right now returning the user tweets
 tweetRouter.get("/", authenticateToken, async (req: any, res) => {
   try {
     const sub = req.user.sub;
@@ -65,6 +66,74 @@ tweetRouter.get("/", authenticateToken, async (req: any, res) => {
   } catch (error) {}
 });
 
+// Should later return all the tweet feed for the home page, right now returning the user tweets
+tweetRouter.get("/:username", authenticateToken, async (req: any, res) => {
+  try {
+    const sub = req.user.sub;
+    const username = req.params.username;
+
+    const user = await prisma.user.findUnique({
+      where: {
+        sub,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!user) {
+      return sendError(res, "User not found", "USER_NOT_FOUND", 400);
+    }
+
+    const tweets = await prisma.tweet.findMany({
+      where: {
+        user: {
+          handle: username,
+        },
+      },
+
+      include: {
+        user: {
+          select: {
+            image_url: true,
+            first_name: true,
+            last_name: true,
+            id: true,
+            handle: true,
+          },
+        },
+
+        likes: {
+          where: {
+            userId: user.id,
+          },
+          select: {
+            id: true,
+          },
+        },
+
+        _count: {
+          select: { likes: true, replies: true },
+        },
+      },
+
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    const formattedTweets = tweets.map((tweet) => ({
+      ...tweet,
+      isLiked: tweet.likes.length > 0,
+      likeCount: tweet._count.likes,
+      replyCount: tweet._count.replies,
+    }));
+
+    sendSuccess(res, formattedTweets, "Tweets fetched", 200);
+  } catch (error) {}
+});
+
+// Return individual tweet and all its replies
 tweetRouter.get("/:username/:id", authenticateToken, async (req: any, res) => {
   try {
     const sub = req.user.sub;

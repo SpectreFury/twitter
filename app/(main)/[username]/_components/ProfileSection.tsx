@@ -107,7 +107,7 @@ const ProfileSection = () => {
   console.log("Profile: ", profile);
 
   return (
-    <div className="w-2xl flex flex-col">
+    <div className="w-2xl flex flex-col border border-y-0 border-gray-100 ">
       <div>
         <Image
           src="/profile-wall.jpg"
