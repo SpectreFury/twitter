@@ -17,6 +17,11 @@ tweetRouter.get("/", authenticateToken, async (req: any, res) => {
       },
       select: {
         id: true,
+        following: {
+          select: {
+            followingId: true,
+          },
+        },
       },
     });
 
@@ -24,9 +29,18 @@ tweetRouter.get("/", authenticateToken, async (req: any, res) => {
       return sendError(res, "User not found", "USER_NOT_FOUND", 400);
     }
 
+    const followedUserIds = user.following.map((follow) => follow.followingId);
+    const feedUserIds = [user.id, ...followedUserIds];
+
     const tweets = await prisma.tweet.findMany({
       where: {
-        userId: user.id,
+        userId: {
+          in: feedUserIds,
+        },
+      },
+
+      orderBy: {
+        createdAt: "desc",
       },
 
       include: {
@@ -62,7 +76,7 @@ tweetRouter.get("/", authenticateToken, async (req: any, res) => {
       replyCount: tweet._count.replies,
     }));
 
-    sendSuccess(res, formattedTweets, "Tweets fetched", 200);
+    return sendSuccess(res, formattedTweets, "Tweets fetched", 200);
   } catch (error) {}
 });
 
